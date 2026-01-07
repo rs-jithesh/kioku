@@ -37,7 +37,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ conversationId }) 
         error: voiceError,
         startListening,
         stopListening,
-        resetTranscript
+        clearTranscript
     } = useVoiceInput();
 
     // Sync voice transcript to input
@@ -47,9 +47,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ conversationId }) 
                 const base = prev.trim();
                 return base ? `${base} ${transcript}` : transcript;
             });
-            resetTranscript();
+            clearTranscript();
         }
-    }, [transcript]); // Removed resetTranscript to avoid potential loops/unstable calls
+    }, [transcript, clearTranscript]);
 
     // Auto-clear voice errors
     useEffect(() => {

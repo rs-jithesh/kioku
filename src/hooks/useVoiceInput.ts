@@ -34,13 +34,13 @@ declare global {
 
 export interface UseVoiceInputReturn {
     isListening: boolean;
-    transcript: string;
+    transcript: string; // Now represents the latest final segment
     interimTranscript: string;
     isSupported: boolean;
     error: string | null;
     startListening: () => void;
     stopListening: () => void;
-    resetTranscript: () => void;
+    clearTranscript: () => void; // Renamed for clarity
 }
 
 export function useVoiceInput(): UseVoiceInputReturn {
@@ -87,20 +87,21 @@ export function useVoiceInput(): UseVoiceInputReturn {
         };
 
         recognition.onresult = (event: SpeechRecognitionEvent) => {
-            let finalTranscript = '';
+            let finalSegment = '';
             let interimResult = '';
 
             for (let i = event.resultIndex; i < event.results.length; i++) {
                 const result = event.results[i];
                 if (result.isFinal) {
-                    finalTranscript += result[0].transcript;
+                    finalSegment += result[0].transcript;
                 } else {
                     interimResult += result[0].transcript;
                 }
             }
 
-            if (finalTranscript) {
-                setTranscript(prev => prev + finalTranscript);
+            if (finalSegment) {
+                // Only store the NEW final segment
+                setTranscript(finalSegment);
                 setInterimTranscript('');
             } else {
                 setInterimTranscript(interimResult);
@@ -124,13 +125,14 @@ export function useVoiceInput(): UseVoiceInputReturn {
         return () => {
             recognition.abort();
         };
-    }, [isSupported]);
+    }, [isSupported, isSecureContext]);
 
     const startListening = useCallback(() => {
         if (!recognitionRef.current || isListening) return;
 
         try {
             setError(null);
+            setTranscript('');
             recognitionRef.current.start();
         } catch (e) {
             console.error('Failed to start speech recognition:', e);
@@ -145,9 +147,8 @@ export function useVoiceInput(): UseVoiceInputReturn {
         haptics.medium();
     }, [isListening]);
 
-    const resetTranscript = useCallback(() => {
+    const clearTranscript = useCallback(() => {
         setTranscript('');
-        setInterimTranscript('');
     }, []);
 
     return {
@@ -158,6 +159,6 @@ export function useVoiceInput(): UseVoiceInputReturn {
         error,
         startListening,
         stopListening,
-        resetTranscript,
+        clearTranscript,
     };
 }
