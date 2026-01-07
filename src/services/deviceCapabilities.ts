@@ -162,7 +162,8 @@ export async function requestNotificationPermission(): Promise<boolean> {
 }
 
 export function canNotify(): boolean {
-    return 'Notification' in window && Notification.permission === 'granted';
+    const prefEnabled = localStorage.getItem('PREF_NOTIFICATIONS_ENABLED') === 'true';
+    return 'Notification' in window && Notification.permission === 'granted' && prefEnabled;
 }
 
 export function showNotification(title: string, options?: NotificationOptions): void {

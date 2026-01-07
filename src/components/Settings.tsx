@@ -4,6 +4,7 @@ import { MDButton } from './common/MDButton';
 import { llmService } from '../services/llm';
 import { requestLocationPermission, requestNotificationPermission, haptics } from '../services/deviceCapabilities';
 import { usePWAInstall } from '../hooks/usePWAInstall';
+import { MDDialog } from './common/MDDialog';
 import './Settings.css';
 
 export const Settings: React.FC = () => {
@@ -18,6 +19,8 @@ export const Settings: React.FC = () => {
     const [status, setStatus] = useState('');
     const [locationEnabled, setLocationEnabled] = useState(localStorage.getItem('PREF_LOCATION_ENABLED') === 'true');
     const [notificationsEnabled, setNotificationsEnabled] = useState(localStorage.getItem('PREF_NOTIFICATIONS_ENABLED') === 'true');
+    const [voiceLang, setVoiceLang] = useState(localStorage.getItem('PREF_VOICE_LANG') || 'en-US');
+    const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
     const handleSave = () => {
         const keyMap: Record<string, string> = {
@@ -43,9 +46,11 @@ export const Settings: React.FC = () => {
         localStorage.setItem('APP_FONT_SCALE', String(fontScale));
         localStorage.setItem('PREF_LOCATION_ENABLED', String(locationEnabled));
         localStorage.setItem('PREF_NOTIFICATIONS_ENABLED', String(notificationsEnabled));
+        localStorage.setItem('PREF_VOICE_LANG', voiceLang);
 
         llmService.loadProvider();
         haptics.success();
+        setShowSuccessDialog(true);
         setStatus('Settings saved successfully!');
         setTimeout(() => setStatus(''), 3000);
     };
@@ -100,7 +105,7 @@ export const Settings: React.FC = () => {
                     <option value="groq">Groq (Fastest)</option>
                     <option value="openai">OpenAI (GPT-4o)</option>
                     <option value="anthropic">Anthropic (Claude 3.5)</option>
-                    <option value="gemini">Google Gemini (1.5 Flash)</option>
+                    <option value="gemini">Google Gemini (2.5 Flash)</option>
                     <option value="openrouter">OpenRouter (Any Model)</option>
                 </select>
             </div>
@@ -147,6 +152,28 @@ export const Settings: React.FC = () => {
                 </div>
             </div>
 
+            <div className="settings-section">
+                <h3>Voice & Speech</h3>
+                <div className="setting-item">
+                    <label>Voice Input Language</label>
+                    <select
+                        value={voiceLang}
+                        onChange={(e) => setVoiceLang(e.target.value)}
+                        className="provider-select"
+                    >
+                        <option value="en-US">English (US)</option>
+                        <option value="en-GB">English (UK)</option>
+                        <option value="en-IN">English (India)</option>
+                        <option value="es-ES">Spanish</option>
+                        <option value="fr-FR">French</option>
+                        <option value="de-DE">German</option>
+                        <option value="ja-JP">Japanese</option>
+                        <option value="hi-IN">Hindi</option>
+                        <option value="zh-CN">Chinese</option>
+                    </select>
+                </div>
+            </div>
+
             {isInstallable && !isInstalled ? (
                 <section className="settings-section install-banner">
                     <div className="install-content">
@@ -174,6 +201,14 @@ export const Settings: React.FC = () => {
                 {status && <span className="status-msg">{status}</span>}
                 <MDButton variant="filled" onClick={handleSave}>Save Changes</MDButton>
             </div>
+
+            <MDDialog
+                isOpen={showSuccessDialog}
+                onClose={() => setShowSuccessDialog(false)}
+                title="Settings Saved"
+                message="Your preferences and API keys have been updated successfully."
+                icon="check_circle"
+            />
         </div>
     );
 };

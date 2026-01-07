@@ -1,0 +1,65 @@
+.md-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    animation: fadeIn 0.2s ease;
+}
+
+.md-dialog-container {
+    background-color: var(--md-sys-color-surface);
+    color: var(--md-sys-color-on-surface);
+    padding: 24px;
+    border-radius: 28px;
+    width: 90%;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.md-dialog-icon {
+    font-size: 32px;
+    color: var(--md-sys-color-primary);
+    margin-bottom: 16px;
+}
+
+.md-dialog-title {
+    margin: 0 0 12px 0;
+    font-size: 20px;
+    font-weight: 500;
+}
+
+.md-dialog-message {
+    margin: 0 0 24px 0;
+    font-size: 14px;
+    color: var(--md-sys-color-on-surface-variant);
+    line-height: 1.5;
+}
+
+.md-dialog-actions {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}

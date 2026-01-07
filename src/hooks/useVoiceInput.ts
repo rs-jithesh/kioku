@@ -75,9 +75,10 @@ export function useVoiceInput(): UseVoiceInputReturn {
         const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognitionClass();
 
+        const savedLang = localStorage.getItem('PREF_VOICE_LANG') || 'en-US';
         recognition.continuous = true;
         recognition.interimResults = true;
-        recognition.lang = 'en-US';
+        recognition.lang = savedLang;
 
         recognition.onstart = () => {
             setIsListening(true);

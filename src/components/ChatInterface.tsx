@@ -178,7 +178,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ conversationId }) 
         // Don't manually add to messages - useLiveQuery handles sync from DB
         setInput('');
         setIsLoading(true);
-        setTimeout(() => inputRef.current?.focus(), 0);
+        inputRef.current?.blur();
 
         try {
             const relevantNotes = await vectorStore.searchNotes(userInput);
@@ -280,8 +280,8 @@ ${systemContext}`
 
         } catch (error) {
             console.error(error);
-            const errorMsg = 'Sorry, I encountered an error.';
-            setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
+            const errorMsg = error instanceof Error ? error.message : 'Sorry, I encountered an unexpected error.';
+            setMessages(prev => [...prev, { role: 'assistant', content: `❌ **Error:** ${errorMsg}\n\nPlease check your API key and internet connection in Settings.` }]);
         } finally {
             setIsLoading(false);
         }
@@ -300,7 +300,7 @@ ${systemContext}`
                 <div className="landing-screen">
                     <header className="landing-header">
                         <h2>Welcome to Kioku</h2>
-                        <p>How can I help you be productive today?</p>
+                        <p>Your AI assistant</p>
                     </header>
 
                     <div className="suggestions-container">

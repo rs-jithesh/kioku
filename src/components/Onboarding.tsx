@@ -31,11 +31,11 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     if (step === 'splash') {
         return (
             <div className="onboarding-splash">
-                <div className="splash-logo">
-                    <span className="material-symbols-rounded">cloud</span>
+                <div className="splash-logo-container">
+                    <img src="/logo.jpg" alt="Kioku Logo" className="splash-logo-img" />
                 </div>
                 <h1>Kioku</h1>
-                <p>Multi-Provider Power</p>
+                <p>Your AI assistant</p>
                 <div className="splash-spinner"></div>
             </div>
         );
@@ -49,8 +49,10 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
             <select value={provider} onChange={(e) => setProvider(e.target.value)} className="provider-select-onboarding">
                 <option value="groq">Groq (Fastest)</option>
-                <option value="openai">OpenAI</option>
-                <option value="anthropic">Anthropic</option>
+                <option value="openai">OpenAI (GPT-4o)</option>
+                <option value="anthropic">Anthropic (Claude 3.5)</option>
+                <option value="gemini">Google Gemini (2.5 Flash)</option>
+                <option value="openrouter">OpenRouter (Any Model)</option>
             </select>
 
             <MDInput

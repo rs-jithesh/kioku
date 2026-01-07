@@ -35,43 +35,47 @@ function App() {
 
   const conversations = useLiveQuery(() => db.conversations.orderBy('updatedAt').reverse().toArray()) || [];
 
+  const initializeApp = async () => {
+    await vectorStore.initialize();
+
+    // Find if there's an empty conversation to reuse
+    const allConvs = await db.conversations.toArray();
+    let emptyConvId: number | null = null;
+
+    for (const conv of allConvs) {
+      const msgCount = await db.chat_messages.where('conversationId').equals(conv.id!).count();
+      if (msgCount === 0) {
+        emptyConvId = conv.id!;
+        break;
+      }
+    }
+
+    if (emptyConvId) {
+      setActiveConversationId(emptyConvId);
+    } else {
+      const recent = await db.conversations.orderBy('updatedAt').reverse().first();
+      if (recent) {
+        setActiveConversationId(recent.id!);
+      } else {
+        await createNewChat();
+      }
+    }
+  };
+
   useEffect(() => {
     const savedScale = localStorage.getItem('APP_FONT_SCALE') || '1';
     document.documentElement.style.setProperty('--app-font-scale', savedScale);
 
     if (localStorage.getItem('AI_PROVIDER_TYPE')) {
       setIsOnboarded(true);
-      const init = async () => {
-        await vectorStore.initialize();
-
-        // Find if there's an empty conversation to reuse
-        const allConvs = await db.conversations.toArray();
-        let emptyConvId: number | null = null;
-
-        for (const conv of allConvs) {
-          const msgCount = await db.chat_messages.where('conversationId').equals(conv.id!).count();
-          if (msgCount === 0) {
-            emptyConvId = conv.id!;
-            break;
-          }
-        }
-
-        if (emptyConvId) {
-          setActiveConversationId(emptyConvId);
-        } else {
-          // If no empty ones, check the most recent one
-          const recent = await db.conversations.orderBy('updatedAt').reverse().first();
-          if (recent) {
-            setActiveConversationId(recent.id!);
-          } else {
-            // Create initial one if absolutely none exist
-            createNewChat();
-          }
-        }
-      };
-      init();
+      initializeApp();
     }
   }, []);
+
+  const handleOnboardingComplete = () => {
+    setIsOnboarded(true);
+    initializeApp();
+  };
 
   const createNewChat = async () => {
     // Check if an empty chat already exists before creating a new one
@@ -116,7 +120,7 @@ function App() {
   }
 
   if (!isOnboarded) {
-    return <Onboarding onComplete={() => setIsOnboarded(true)} />;
+    return <Onboarding onComplete={handleOnboardingComplete} />;
   }
 
   return (

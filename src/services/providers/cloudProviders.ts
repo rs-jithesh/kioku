@@ -28,7 +28,7 @@ export class GroqProvider extends BaseCloudProvider {
 
 export class OpenAIProvider extends BaseCloudProvider {
     name = 'OpenAI';
-    protected apiUrl = 'https://api.openai.from/v1/chat/completions';
+    protected apiUrl = 'https://api.openai.com/v1/chat/completions';
     protected model = 'gpt-4o-mini';
 
     protected getHeaders() {
@@ -106,8 +106,8 @@ export class AnthropicProvider extends BaseCloudProvider {
 
 export class GeminiProvider extends BaseCloudProvider {
     name = 'Gemini';
-    protected apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent';
-    protected model = 'gemini-1.5-flash';
+    protected apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent';
+    protected model = 'gemini-2.5-flash';
 
     protected getHeaders() {
         return {
