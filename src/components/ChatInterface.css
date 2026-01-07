@@ -159,6 +159,35 @@
     align-items: center;
     background-color: var(--md-sys-color-surface);
     border-top: 1px solid var(--md-sys-color-outline);
+    position: relative;
+}
+
+.voice-error-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 16px;
+    right: 16px;
+    background-color: var(--md-sys-color-error-container);
+    color: var(--md-sys-color-on-error-container);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    margin-bottom: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    animation: slideUp 0.3s ease;
+    z-index: 100;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(10px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 .chat-input-field {

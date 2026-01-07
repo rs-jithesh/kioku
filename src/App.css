@@ -126,6 +126,20 @@
   background-color: var(--md-sys-color-surface-variant);
 }
 
+.drawer-item.install-cta {
+  margin: 8px 12px;
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  border-radius: 12px;
+  height: 48px;
+  font-weight: 500;
+}
+
+.drawer-item.install-cta:hover {
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+}
+
 @keyframes slideIn {
   from {
     transform: translateX(-100%);

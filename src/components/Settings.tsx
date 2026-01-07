@@ -3,9 +3,11 @@ import { MDInput } from './common/MDInput';
 import { MDButton } from './common/MDButton';
 import { llmService } from '../services/llm';
 import { requestLocationPermission, requestNotificationPermission, haptics } from '../services/deviceCapabilities';
+import { usePWAInstall } from '../hooks/usePWAInstall';
 import './Settings.css';
 
 export const Settings: React.FC = () => {
+    const { isInstallable, isInstalled, promptInstall, platform } = usePWAInstall();
     const [provider, setProvider] = useState(localStorage.getItem('AI_PROVIDER_TYPE') || 'groq');
     const [groqKey, setGroqKey] = useState(localStorage.getItem('GROQ_API_KEY') || '');
     const [openaiKey, setOpenaiKey] = useState(localStorage.getItem('OPENAI_API_KEY') || '');
@@ -144,6 +146,29 @@ export const Settings: React.FC = () => {
                     </MDButton>
                 </div>
             </div>
+
+            {isInstallable && !isInstalled ? (
+                <section className="settings-section install-banner">
+                    <div className="install-content">
+                        <span className="material-symbols-rounded">install_mobile</span>
+                        <div className="install-text">
+                            <h3>Install Kioku</h3>
+                            <p>Add Kioku to your home screen for a full-screen experience and offline access.</p>
+                        </div>
+                        <MDButton variant="filled" onClick={promptInstall}>Install</MDButton>
+                    </div>
+                </section>
+            ) : !isInstalled && (
+                <section className="settings-section tip-box">
+                    <div className="tip-content">
+                        <span className="material-symbols-rounded">info</span>
+                        <div className="tip-text">
+                            <p><strong>Note on Installation:</strong> If you don't see an install button, ensure you are accessing via <code>localhost</code> or an <code>https://</code> URL. Browsers require a secure connection to enable PWA features.</p>
+                            {platform === 'ios' && <p>On iOS, use the Share menu and select "Add to Home Screen".</p>}
+                        </div>
+                    </div>
+                </section>
+            )}
 
             <div className="settings-actions">
                 {status && <span className="status-msg">{status}</span>}

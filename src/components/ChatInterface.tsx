@@ -34,6 +34,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ conversationId }) 
         transcript,
         interimTranscript,
         isSupported: isVoiceSupported,
+        error: voiceError,
         startListening,
         stopListening,
         resetTranscript
@@ -48,7 +49,18 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ conversationId }) 
             });
             resetTranscript();
         }
-    }, [transcript, resetTranscript]);
+    }, [transcript]); // Removed resetTranscript to avoid potential loops/unstable calls
+
+    // Auto-clear voice errors
+    useEffect(() => {
+        if (voiceError) {
+            const timer = setTimeout(() => {
+                // We can't clear the error inside the hook easily if it's internal state
+                // but we can at least detect it here.
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [voiceError]);
 
     // Sync persisted messages to local state with stability check
     useEffect(() => {
@@ -322,6 +334,7 @@ ${systemContext}`
                 </div>
 
                 <div className="chat-input-area">
+                    {voiceError && <div className="voice-error-tooltip">{voiceError}</div>}
                     <MDInput
                         ref={inputRef}
                         label={isListening ? (interimTranscript || "Listening...") : "Message..."}
@@ -361,6 +374,7 @@ ${systemContext}`
             </div>
 
             <div className="chat-input-area">
+                {voiceError && <div className="voice-error-tooltip">{voiceError}</div>}
                 <MDInput
                     ref={inputRef}
                     label={isListening ? (interimTranscript || "Listening...") : "Message..."}

@@ -54,8 +54,23 @@ export function useVoiceInput(): UseVoiceInputReturn {
     const isSupported = typeof window !== 'undefined' &&
         ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
 
+    const isSecureContext = typeof window !== 'undefined' && (
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.protocol === 'https:'
+    );
+
     useEffect(() => {
-        if (!isSupported) return;
+        if (!isSupported) {
+            console.warn('Speech recognition is not supported in this browser.');
+            return;
+        }
+
+        if (!isSecureContext) {
+            console.warn('Speech recognition requires a secure context (HTTPS or localhost).');
+            setError('Browser requires HTTPS for voice input');
+            return;
+        }
 
         const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognitionClass();

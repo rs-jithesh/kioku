@@ -6,6 +6,7 @@ import { Settings } from './components/Settings';
 import { MemoryView } from './components/MemoryView';
 import { ReminderView } from './components/ReminderView';
 import { MDButton } from './components/common/MDButton';
+import { usePWAInstall } from './hooks/usePWAInstall';
 import { db } from './services/db';
 import { vectorStore } from './services/vectorStore';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -13,6 +14,7 @@ import './App.css';
 
 function App() {
   const [view, setView] = useState<'chat' | 'notes' | 'settings' | 'memory' | 'reminders'>('chat');
+  const { isInstallable, promptInstall } = usePWAInstall();
   const [isOnboarded, setIsOnboarded] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
@@ -176,6 +178,12 @@ function App() {
             <div className="drawer-item" onClick={() => { setView('memory'); setIsMenuOpen(false); }}>
               <span className="material-symbols-rounded">psychology</span> Memory
             </div>
+
+            {isInstallable && (
+              <div className="drawer-item install-cta" onClick={() => { promptInstall(); setIsMenuOpen(false); }}>
+                <span className="material-symbols-rounded">install_mobile</span> Install Kioku
+              </div>
+            )}
             <div className="drawer-divider"></div>
             <div className="drawer-item" onClick={() => { setView('settings'); setIsMenuOpen(false); }}>
               <span className="material-symbols-rounded">settings</span> Settings
