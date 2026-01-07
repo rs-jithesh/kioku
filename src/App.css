@@ -1,0 +1,243 @@
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: var(--md-sys-color-background);
+  color: var(--md-sys-color-on-background);
+}
+
+.app-header {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  gap: 16px;
+  /* Elevation 1 */
+  box-shadow: 0 1px 3px 1px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+.header-actions {
+  margin-left: auto;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn:hover {
+  background-color: var(--md-sys-color-surface-variant);
+}
+
+.app-drawer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  animation: fadeIn 0.2s ease;
+}
+
+.app-drawer {
+  width: 280px;
+  height: 100%;
+  background-color: var(--md-sys-color-surface);
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.3);
+  padding: 16px 0;
+  animation: slideIn 0.3s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.drawer-header {
+  padding: 16px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--md-sys-color-on-surface-variant);
+  text-transform: uppercase;
+}
+
+.drawer-section-title {
+  padding: 16px 24px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--md-sys-color-primary);
+  text-transform: uppercase;
+}
+
+.drawer-history-list {
+  max-height: 250px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+}
+
+.history-item {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 24px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 14px;
+  color: var(--md-sys-color-on-surface);
+}
+
+.history-item:hover {
+  background-color: var(--md-sys-color-surface-variant);
+}
+
+.history-item.active {
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  font-weight: 500;
+}
+
+.history-item .material-symbols-rounded {
+  font-size: 20px;
+}
+
+.history-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drawer-item {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 24px;
+  cursor: pointer;
+}
+
+.drawer-item:hover {
+  background-color: var(--md-sys-color-surface-variant);
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.app-header h1 {
+  font-size: 18px;
+  /* Reduced from 22px */
+  font-weight: 500;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.menu-icon {
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.app-content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.app-nav-bar {
+  height: 80px;
+  background-color: var(--md-sys-color-surface);
+  border-top: 1px solid var(--md-sys-color-outline);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.nav-item {
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  width: 64px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.nav-item.active {
+  color: var(--md-sys-color-on-surface);
+}
+
+.nav-item.active span:first-child {
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  padding: 4px 20px;
+  border-radius: 16px;
+}
+
+/* Mobile Guard */
+.mobile-only-guard {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  padding: 32px;
+  text-align: center;
+  z-index: 9999;
+}
+
+.guard-content {
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.guard-content span {
+  font-size: 80px;
+  color: var(--md-sys-color-primary);
+}
+
+.guard-content h2 {
+  font-size: 24px;
+  margin: 0;
+  font-weight: 500;
+}
+
+.guard-content p {
+  color: var(--md-sys-color-on-surface-variant);
+  line-height: 1.6;
+}

@@ -1,0 +1,83 @@
+.md-fab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 16px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s cubic-bezier(0.2, 0.0, 0, 1.0);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+}
+
+.md-fab:active {
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
+}
+
+.md-fab__icon {
+    font-size: 24px;
+}
+
+.md-fab__state-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: currentColor;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+}
+
+.md-fab:hover .md-fab__state-layer {
+    opacity: 0.08;
+}
+
+.md-fab:active .md-fab__state-layer {
+    opacity: 0.12;
+}
+
+/* Variants */
+.md-fab--primary {
+    background-color: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+}
+
+.md-fab--secondary {
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+}
+
+.md-fab--surface {
+    background-color: var(--md-sys-color-surface);
+    color: var(--md-sys-color-primary);
+}
+
+/* Sizes */
+.md-fab--small {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+}
+
+.md-fab--small .md-fab__icon {
+    font-size: 20px;
+}
+
+.md-fab--medium {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+}
+
+.md-fab--large {
+    width: 96px;
+    height: 96px;
+    border-radius: 28px;
+}
+
+.md-fab--large .md-fab__icon {
+    font-size: 36px;
+}

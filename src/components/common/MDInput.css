@@ -1,0 +1,55 @@
+.md-input-container {
+    position: relative;
+    height: 56px;
+    background-color: var(--md-sys-color-surface-variant);
+    /* Modern rounded input style */
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    border: 1.5px solid transparent;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.md-input-container:focus-within {
+    border-color: var(--md-sys-color-primary);
+    box-shadow: 0 0 0 2px rgba(103, 80, 164, 0.15);
+}
+
+/* Outlined Rounded Text Field Style */
+.md-input-field {
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: none;
+    padding: 20px 20px 4px;
+    font-family: inherit;
+    font-size: 16px;
+    color: var(--md-sys-color-on-surface);
+    box-sizing: border-box;
+    outline: none;
+    border-radius: 16px;
+}
+
+
+
+.md-input-label {
+    position: absolute;
+    left: 20px;
+    top: 16px;
+    font-size: 16px;
+    color: var(--md-sys-color-on-surface-variant);
+    pointer-events: none;
+    transition: all 0.2s ease;
+}
+
+/* Floating Label Logic */
+.md-input-field:focus~.md-input-label,
+.md-input-field:not(:placeholder-shown)~.md-input-label {
+    top: 8px;
+    font-size: 12px;
+    color: var(--md-sys-color-primary);
+}
+
+.md-input-field:not(:placeholder-shown):not(:focus)~.md-input-label {
+    color: var(--md-sys-color-on-surface-variant);
+}

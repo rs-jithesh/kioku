@@ -1,0 +1,112 @@
+.memory-view-container {
+    padding: 16px;
+    max-width: 1200px;
+    margin: 0 auto;
+    height: 100%;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    animation: fadeIn 0.3s ease;
+}
+
+.memory-header {
+    text-align: center;
+}
+
+.memory-header h2 {
+    margin: 0;
+    font-size: 28px;
+    color: var(--md-sys-color-primary);
+}
+
+.memory-header p {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 14px;
+    margin-top: 8px;
+}
+
+.memory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.memory-item {
+    border: 1px dashed var(--md-sys-color-outline-variant);
+    height: 100%;
+}
+
+.memory-item-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.memory-key {
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--md-sys-color-secondary);
+}
+
+.memory-value {
+    margin: 0;
+    font-size: 16px;
+    color: var(--md-sys-color-on-surface);
+    font-weight: 500;
+}
+
+.memory-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+    padding-top: 8px;
+}
+
+.memory-footer small {
+    font-size: 10px;
+    color: var(--md-sys-color-outline);
+}
+
+.icon-btn-tiny {
+    background: none;
+    border: none;
+    color: var(--md-sys-color-outline);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    border-radius: 50%;
+}
+
+.icon-btn-tiny:hover {
+    background: var(--md-sys-color-surface-container-high);
+    color: var(--md-sys-color-error);
+}
+
+.icon-btn-tiny .material-symbols-rounded {
+    font-size: 16px;
+}
+
+.empty-memory {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 64px 0;
+    color: var(--md-sys-color-outline);
+}
+
+.empty-memory .material-symbols-rounded {
+    font-size: 64px;
+    opacity: 0.5;
+}
+
+@media (max-width: 600px) {
+    .memory-grid {
+        grid-template-columns: 1fr;
+    }
+}
