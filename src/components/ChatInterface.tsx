@@ -28,6 +28,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ conversationId }) 
     const [isLoading, setIsLoading] = useState(false);
     const [errorDialogOpen, setErrorDialogOpen] = useState(false);
     const [errorDialogMessage, setErrorDialogMessage] = useState('');
+    const [loadingProgress, setLoadingProgress] = useState<{ progress: number; text: string } | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const isInitialLoad = useRef(true);
@@ -42,6 +43,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ conversationId }) 
         stopListening,
         resetTranscript
     } = useVoiceInput();
+
+    useEffect(() => {
+        llmService.setProgressListener((progress) => {
+            setLoadingProgress(progress);
+            if (progress.progress === 1) {
+                setTimeout(() => setLoadingProgress(null), 2000);
+            }
+        });
+        return () => llmService.setProgressListener(() => { });
+    }, []);
 
     const [lastVoiceText, setLastVoiceText] = useState('');
 
@@ -455,6 +466,24 @@ This error has been saved to your chat history for reference.`;
                 ))}
                 <div ref={messagesEndRef} />
             </div>
+
+            {loadingProgress && (
+                <div className="model-loading-overlay">
+                    <div className="progress-card">
+                        <div className="progress-header">
+                            <span className="material-symbols-rounded spinning">sync</span>
+                            <span>Loading Local AI Model</span>
+                        </div>
+                        <div className="progress-bar-container">
+                            <div
+                                className="progress-bar-fill"
+                                style={{ width: `${loadingProgress.progress * 100}%` }}
+                            />
+                        </div>
+                        <div className="progress-status">{loadingProgress.text}</div>
+                    </div>
+                </div>
+            )}
 
             <div className="chat-input-area">
                 {voiceError && <div className="voice-error-tooltip">{voiceError}</div>}

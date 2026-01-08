@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MDInput } from './common/MDInput';
 import { MDButton } from './common/MDButton';
 import { llmService } from '../services/llm';
@@ -29,6 +29,11 @@ export const Settings: React.FC = () => {
     const [voiceLang, setVoiceLang] = useState(localStorage.getItem('PREF_VOICE_LANG') || 'en-US');
     const [serperKey, setSerperKey] = useState(localStorage.getItem('SERPER_API_KEY') || '');
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+    const [webGPUSupport, setWebGPUSupport] = useState<{ supported: boolean; message?: string }>({ supported: true });
+
+    useEffect(() => {
+        llmService.checkWebGPUSupport().then(setWebGPUSupport);
+    }, []);
 
     const handleSave = () => {
         const keyMap: Record<string, string> = {
@@ -38,8 +43,14 @@ export const Settings: React.FC = () => {
             gemini: geminiKey,
         };
 
-        if (!keyMap[provider]?.trim()) {
+        if (provider !== 'local' && !keyMap[provider]?.trim()) {
             setStatus('Please enter an API key for the selected provider.');
+            setTimeout(() => setStatus(''), 3000);
+            return;
+        }
+
+        if (provider === 'local' && !webGPUSupport.supported) {
+            setStatus('Local LLM is not supported on this device/browser.');
             setTimeout(() => setStatus(''), 3000);
             return;
         }
@@ -114,11 +125,20 @@ export const Settings: React.FC = () => {
                     <option value="openai">OpenAI (GPT-4o)</option>
                     <option value="anthropic">Anthropic (Claude 3.5)</option>
                     <option value="gemini">Google Gemini (2.5 Flash)</option>
+                    <option value="local">Local LLM (Private & Offline)</option>
                 </select>
-                <div className="setting-tip" style={{ marginTop: '12px', padding: '12px', backgroundColor: 'var(--md-sys-color-secondary-container)', borderRadius: '12px', fontSize: '13px', color: 'var(--md-sys-color-on-secondary-container)' }}>
-                    <span className="material-symbols-rounded" style={{ fontSize: '18px', verticalAlign: 'middle', marginRight: '8px' }}>info</span>
-                    <strong>Best for Browser:</strong> Use <strong>OpenRouter</strong> for the most reliable connection. Some direct providers (like Groq) may block requests due to CORS settings in certain browsers.
-                </div>
+                {provider === 'local' && !webGPUSupport.supported && (
+                    <div className="setting-error" style={{ marginTop: '12px', color: 'var(--md-sys-color-error)', fontSize: '13px' }}>
+                        <span className="material-symbols-rounded" style={{ fontSize: '18px', verticalAlign: 'middle', marginRight: '8px' }}>error</span>
+                        {webGPUSupport.message}
+                    </div>
+                )}
+                {provider === 'local' && webGPUSupport.supported && (
+                    <div className="setting-tip" style={{ marginTop: '12px', padding: '12px', backgroundColor: 'var(--md-sys-color-tertiary-container)', borderRadius: '12px', fontSize: '13px', color: 'var(--md-sys-color-on-tertiary-container)' }}>
+                        <span className="material-symbols-rounded" style={{ fontSize: '18px', verticalAlign: 'middle', marginRight: '8px' }}>bolt</span>
+                        <strong>On-Device AI:</strong> Local LLM runs entirely on your GPU. The first run will download ~2GB of model data to your browser cache.
+                    </div>
+                )}
             </div>
 
             <div className="settings-section">
@@ -135,24 +155,32 @@ export const Settings: React.FC = () => {
                 {provider === 'gemini' && (
                     <MDInput label="Gemini API Key" value={geminiKey} onChange={(e) => setGeminiKey(e.target.value)} type="password" />
                 )}
-                <div className="api-key-portal-link" style={{ marginTop: '12px' }}>
-                    <a
-                        href={API_KEY_URLS[provider]}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                            color: 'var(--md-sys-color-primary)',
-                            textDecoration: 'none',
-                            fontSize: '14px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                        }}
-                    >
-                        <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>open_in_new</span>
-                        Get {provider.charAt(0).toUpperCase() + provider.slice(1)} API Key
-                    </a>
-                </div>
+                {provider !== 'local' && (
+                    <div className="api-key-portal-link" style={{ marginTop: '12px' }}>
+                        <a
+                            href={API_KEY_URLS[provider]}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                                color: 'var(--md-sys-color-primary)',
+                                textDecoration: 'none',
+                                fontSize: '14px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                            }}
+                        >
+                            <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>open_in_new</span>
+                            Get {provider.charAt(0).toUpperCase() + provider.slice(1)} API Key
+                        </a>
+                    </div>
+                )}
+                {provider === 'local' && (
+                    <div className="setting-tip" style={{ marginTop: '12px', fontSize: '14px', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                        <span className="material-symbols-rounded" style={{ fontSize: '18px', verticalAlign: 'middle', marginRight: '8px' }}>lock</span>
+                        No API Key required for Local LLM. Your data stays on your device.
+                    </div>
+                )}
             </div>
 
             <div className="settings-section">

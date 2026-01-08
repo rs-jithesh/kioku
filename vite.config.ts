@@ -38,5 +38,9 @@ export default defineConfig({
   ],
   server: {
     allowedHosts: ['devserver-master--kiokuu.netlify.app'],
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    }
   },
 });
