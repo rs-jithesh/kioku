@@ -14,6 +14,13 @@ const API_KEY_URLS: Record<string, string> = {
     gemini: 'https://aistudio.google.com/app/apikey'
 };
 
+interface HFModel {
+    id: string;
+    likes: number;
+    downloads: number;
+    tags: string[];
+}
+
 export const Settings: React.FC = () => {
     const { isInstallable, isInstalled, promptInstall, platform } = usePWAInstall();
     const [provider, setProvider] = useState(localStorage.getItem('AI_PROVIDER_TYPE') || 'groq');
@@ -31,9 +38,53 @@ export const Settings: React.FC = () => {
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
     const [webGPUSupport, setWebGPUSupport] = useState<{ supported: boolean; message?: string }>({ supported: true });
 
+    // Local Model Search State
+    const [localModelId, setLocalModelId] = useState(localStorage.getItem('LOCAL_MODEL_ID') || 'gemma-3-4b-it-q4f16_1-MLC');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<HFModel[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [showModelSearch, setShowModelSearch] = useState(false);
+
     useEffect(() => {
         llmService.checkWebGPUSupport().then(setWebGPUSupport);
     }, []);
+
+    const searchHFModels = async (query: string) => {
+        setIsSearching(true);
+        try {
+            // Search specifically for models likely to be compatible with WebLLM/MLC
+            // We search for "MLC" keyword or models with mlc-ai tag
+            const q = query.trim() || "MLC";
+            const response = await fetch(`https://huggingface.co/api/models?search=${encodeURIComponent(q)}&limit=20&sort=likes&direction=-1`);
+            const data = await response.json();
+
+            // Basic filtering for potential compatibility (not perfect, but reasonable)
+            const models = data.filter((m: any) =>
+                m.id.includes('MLC') ||
+                m.tags.includes('mlc-ai') ||
+                m.id.includes('q4f16_1') // Common quantization for WebLLM
+            ).map((m: any) => ({
+                id: m.id,
+                likes: m.likes,
+                downloads: m.downloads,
+                tags: m.tags
+            }));
+
+            setSearchResults(models);
+        } catch (e) {
+            console.error("HF Search failed", e);
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    // Auto-search default on open
+    useEffect(() => {
+        if (showModelSearch) {
+            searchHFModels(searchQuery);
+        }
+    }, [showModelSearch]);
+
 
     const handleSave = () => {
         const keyMap: Record<string, string> = {
@@ -66,6 +117,11 @@ export const Settings: React.FC = () => {
         localStorage.setItem('PREF_WEB_SEARCH_ENABLED', String(webSearchEnabled));
         localStorage.setItem('SERPER_API_KEY', serperKey);
         localStorage.setItem('PREF_VOICE_LANG', voiceLang);
+
+        if (provider === 'local') {
+            localStorage.setItem('LOCAL_MODEL_ID', localModelId);
+            // Trigger model update if service is instantiated
+        }
 
         llmService.loadProvider();
         haptics.success();
@@ -134,9 +190,86 @@ export const Settings: React.FC = () => {
                     </div>
                 )}
                 {provider === 'local' && webGPUSupport.supported && (
-                    <div className="setting-tip" style={{ marginTop: '12px', padding: '12px', backgroundColor: 'var(--md-sys-color-tertiary-container)', borderRadius: '12px', fontSize: '13px', color: 'var(--md-sys-color-on-tertiary-container)' }}>
-                        <span className="material-symbols-rounded" style={{ fontSize: '18px', verticalAlign: 'middle', marginRight: '8px' }}>bolt</span>
-                        <strong>On-Device AI:</strong> Local LLM runs entirely on your GPU. The first run will download ~2GB of model data to your browser cache.
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
+                        <div className="setting-tip" style={{ padding: '12px', backgroundColor: 'var(--md-sys-color-tertiary-container)', borderRadius: '12px', fontSize: '13px', color: 'var(--md-sys-color-on-tertiary-container)' }}>
+                            <span className="material-symbols-rounded" style={{ fontSize: '18px', verticalAlign: 'middle', marginRight: '8px' }}>bolt</span>
+                            <strong>On-Device AI:</strong> Local LLM runs entirely on your GPU. The first run will download model data to your browser cache.
+                        </div>
+
+                        <div className="model-selector-box" style={{
+                            border: '1px solid var(--md-sys-color-outline)',
+                            borderRadius: '12px',
+                            padding: '16px',
+                            backgroundColor: 'var(--md-sys-color-surface-container-low)'
+                        }}>
+                            <label style={{ display: 'block', fontSize: '12px', color: 'var(--md-sys-color-outline)', marginBottom: '8px' }}>Selected Model</label>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <input
+                                    type="text"
+                                    value={localModelId}
+                                    readOnly
+                                    style={{
+                                        flex: 1,
+                                        padding: '8px',
+                                        borderRadius: '8px',
+                                        border: '1px solid var(--md-sys-color-outline-variant)',
+                                        backgroundColor: 'var(--md-sys-color-surface)',
+                                        color: 'var(--md-sys-color-on-surface)'
+                                    }}
+                                />
+                                <MDButton variant="outlined" onClick={() => setShowModelSearch(!showModelSearch)}>
+                                    Change
+                                </MDButton>
+                            </div>
+
+                            {showModelSearch && (
+                                <div className="hf-search-container" style={{ marginTop: '16px', borderTop: '1px solid var(--md-sys-color-outline-variant)', paddingTop: '16px' }}>
+                                    <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                                        <MDInput
+                                            label="Search HF Models (e.g. 'MLC')"
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && searchHFModels(searchQuery)}
+                                        />
+                                        <MDButton variant="filled" onClick={() => searchHFModels(searchQuery)}>
+                                            <span className="material-symbols-rounded">search</span>
+                                        </MDButton>
+                                    </div>
+
+                                    <div className="model-results" style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        {isSearching ? (
+                                            <div style={{ padding: '20px', textAlign: 'center' }}>Searching...</div>
+                                        ) : searchResults.length > 0 ? (
+                                            searchResults.map((m) => (
+                                                <div
+                                                    key={m.id}
+                                                    onClick={() => {
+                                                        setLocalModelId(m.id);
+                                                        setShowModelSearch(false);
+                                                    }}
+                                                    style={{
+                                                        padding: '12px',
+                                                        borderRadius: '8px',
+                                                        backgroundColor: 'var(--md-sys-color-surface)',
+                                                        cursor: 'pointer',
+                                                        border: localModelId === m.id ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)'
+                                                    }}
+                                                >
+                                                    <div style={{ fontWeight: 500, fontSize: '14px' }}>{m.id}</div>
+                                                    <div style={{ fontSize: '12px', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '4px' }}>
+                                                        ❤️ {m.likes} • ⬇️ {m.downloads}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div style={{ padding: '20px', textAlign: 'center', fontSize: '13px', color: 'var(--md-sys-color-outline)' }}>
+                                                No compatible models found. Try searching for "MLC" or "q4f16".
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>

@@ -4,7 +4,7 @@ import { CreateMLCEngine, MLCEngine } from '@mlc-ai/web-llm';
 export class LocalProvider implements ILLMProvider {
     name = 'Local (WebGPU)';
     private engine: MLCEngine | null = null;
-    private modelId = 'gemma-3-4b-it-q4f16_1-MLC'; // Use latest Google Gemma 3 model
+    private modelId = localStorage.getItem('LOCAL_MODEL_ID') || 'gemma-3-4b-it-q4f16_1-MLC';
     private onProgress?: (progress: { progress: number; text: string }) => void;
 
     constructor(onProgress?: (progress: { progress: number; text: string }) => void) {
@@ -13,7 +13,12 @@ export class LocalProvider implements ILLMProvider {
 
     setModel(modelId: string) {
         this.modelId = modelId;
-        this.engine = null; // Reset engine if model changes
+        localStorage.setItem('LOCAL_MODEL_ID', modelId);
+        this.engine = null; // Reset engine to force reload
+    }
+
+    getModel() {
+        return this.modelId;
     }
 
     async chatCompletion(messages: Message[], onUpdate?: OnUpdateCallback): Promise<string> {
