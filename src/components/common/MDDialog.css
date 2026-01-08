@@ -50,6 +50,11 @@
     width: 100%;
     display: flex;
     justify-content: center;
+    gap: 8px;
+}
+
+.md-dialog-actions--confirm {
+    justify-content: flex-end;
 }
 
 @keyframes scaleIn {

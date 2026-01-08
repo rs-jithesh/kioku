@@ -8,6 +8,7 @@ import { vectorStore } from '../services/vectorStore';
 import { shareContent, canShare, haptics } from '../services/deviceCapabilities';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { MDFab } from './common/MDFab';
 import './NoteEditor.css';
 
 export const NoteEditor: React.FC = () => {
@@ -144,11 +145,14 @@ export const NoteEditor: React.FC = () => {
                                     )}
                                     <button
                                         className={`icon-btn-small pin-btn ${note.pinned ? 'active' : ''}`}
-                                        onClick={() => togglePin(note)}
+                                        onClick={(e) => { e.stopPropagation(); togglePin(note); }}
+                                        title={note.pinned ? "Unpin" : "Pin"}
                                     >
-                                        <span className="material-symbols-rounded">push_pin</span>
+                                        <span className="material-symbols-rounded">
+                                            {note.pinned ? 'keep' : 'keep_off'}
+                                        </span>
                                     </button>
-                                    <button className="icon-btn-small" onClick={() => handleDelete(note.id)}>
+                                    <button className="icon-btn-small" onClick={(e) => { e.stopPropagation(); handleDelete(note.id); }} title="Delete">
                                         <span className="material-symbols-rounded">delete</span>
                                     </button>
                                 </div>
@@ -170,9 +174,9 @@ export const NoteEditor: React.FC = () => {
             </div>
 
             {/* Floating Action Button */}
-            <button className="fab-btn" onClick={() => setIsEditing(true)}>
-                <span className="material-symbols-rounded">add</span>
-            </button>
+            <div className="fab-container">
+                <MDFab icon="add" onClick={() => setIsEditing(true)} />
+            </div>
 
             {/* Modal Editor */}
             {isEditing && (

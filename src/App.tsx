@@ -6,10 +6,13 @@ import { Settings } from './components/Settings';
 import { MemoryView } from './components/MemoryView';
 import { ReminderView } from './components/ReminderView';
 import { MDButton } from './components/common/MDButton';
+import { MDDialog } from './components/common/MDDialog';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import { db } from './services/db';
 import { vectorStore } from './services/vectorStore';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { haptics } from './services/deviceCapabilities';
+import { reminderMonitor } from './services/notificationService';
 import './App.css';
 
 function App() {
@@ -19,7 +22,10 @@ function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [conversationToDelete, setConversationToDelete] = useState<number | null>(null);
 
+  // Hook 12
   useEffect(() => {
     const checkMobile = () => {
       const userAgent = navigator.userAgent.toLowerCase();
@@ -33,12 +39,31 @@ function App() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Hook 13-17
   const conversations = useLiveQuery(() => db.conversations.orderBy('updatedAt').reverse().toArray()) || [];
+
+  // Hook 18
+  useEffect(() => {
+    const savedScale = localStorage.getItem('APP_FONT_SCALE') || '1';
+    document.documentElement.style.setProperty('--app-font-scale', savedScale);
+
+    if (localStorage.getItem('AI_PROVIDER_TYPE')) {
+      setIsOnboarded(true);
+      initializeApp();
+    }
+  }, []);
+
+  // Hook 19
+  useEffect(() => {
+    if (isOnboarded) {
+      reminderMonitor.start();
+      return () => reminderMonitor.stop();
+    }
+  }, [isOnboarded]);
 
   const initializeApp = async () => {
     await vectorStore.initialize();
 
-    // Find if there's an empty conversation to reuse
     const allConvs = await db.conversations.toArray();
     let emptyConvId: number | null = null;
 
@@ -62,23 +87,12 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    const savedScale = localStorage.getItem('APP_FONT_SCALE') || '1';
-    document.documentElement.style.setProperty('--app-font-scale', savedScale);
-
-    if (localStorage.getItem('AI_PROVIDER_TYPE')) {
-      setIsOnboarded(true);
-      initializeApp();
-    }
-  }, []);
-
   const handleOnboardingComplete = () => {
     setIsOnboarded(true);
     initializeApp();
   };
 
   const createNewChat = async () => {
-    // Check if an empty chat already exists before creating a new one
     const allConvs = await db.conversations.toArray();
     for (const conv of allConvs) {
       const msgCount = await db.chat_messages.where('conversationId').equals(conv.id!).count();
@@ -89,7 +103,6 @@ function App() {
       }
     }
 
-    // 5 chat limit
     const count = await db.conversations.count();
     if (count >= 5) {
       const oldest = await db.conversations.orderBy('updatedAt').first();
@@ -105,6 +118,35 @@ function App() {
     });
     setActiveConversationId(id);
     setView('chat');
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, convId: number) => {
+    e.stopPropagation();
+    setConversationToDelete(convId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!conversationToDelete) return;
+
+    try {
+      await db.chat_messages.where('conversationId').equals(conversationToDelete).delete();
+      await db.conversations.delete(conversationToDelete);
+      haptics.success();
+
+      if (activeConversationId === conversationToDelete) {
+        const remaining = await db.conversations.orderBy('updatedAt').reverse().first();
+        if (remaining) {
+          setActiveConversationId(remaining.id!);
+        } else {
+          await createNewChat();
+        }
+      }
+      setConversationToDelete(null);
+    } catch (error) {
+      console.error('Failed to delete conversation:', error);
+      haptics.error();
+    }
   };
 
   if (!isMobile) {
@@ -144,7 +186,6 @@ function App() {
         </div>
       </header>
 
-      {/* Side Menu Drawer */}
       {isMenuOpen && (
         <div className="app-drawer-overlay" onClick={() => setIsMenuOpen(false)}>
           <aside className="app-drawer" onClick={e => e.stopPropagation()}>
@@ -153,7 +194,6 @@ function App() {
               <span className="material-symbols-rounded">chat</span> Chat
             </div>
 
-            {/* Chat History Section */}
             <div className="drawer-section-title">Recent Chats</div>
             <div className="drawer-history-list">
               {conversations.map(conv => (
@@ -168,6 +208,13 @@ function App() {
                 >
                   <span className="material-symbols-rounded">chat_bubble</span>
                   <span className="history-title">{conv.title}</span>
+                  <button
+                    className="history-item-delete"
+                    onClick={(e) => handleDeleteClick(e, conv.id!)}
+                    aria-label="Delete chat"
+                  >
+                    <span className="material-symbols-rounded">delete</span>
+                  </button>
                 </div>
               ))}
             </div>
@@ -238,6 +285,21 @@ function App() {
           </button>
         </nav>
       )}
+
+      <MDDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setConversationToDelete(null);
+        }}
+        title="Delete Chat"
+        message="Are you sure you want to delete this chat? This action cannot be undone."
+        icon="delete"
+        variant="confirm"
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   );
 }

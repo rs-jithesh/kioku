@@ -35,5 +35,8 @@ export default defineConfig({
         type: 'module',
       },
     })
-  ]
+  ],
+  server: {
+    allowedHosts: ['devserver-master--kiokuu.netlify.app'],
+  },
 });

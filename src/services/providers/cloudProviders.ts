@@ -1,5 +1,5 @@
 import { BaseCloudProvider } from './base';
-import type { Message } from './base';
+import type { Message, OnUpdateCallback } from './base';
 
 export class GroqProvider extends BaseCloudProvider {
     name = 'Groq';
@@ -133,7 +133,14 @@ export class GeminiProvider extends BaseCloudProvider {
             body: this.getBody(messages)
         });
 
-        if (!response.ok) throw new Error(`Gemini Error: ${response.statusText}`);
+        if (!response.ok) {
+            let errorMsg = `HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const data = await response.json();
+                errorMsg = data.error?.message || data.message || JSON.stringify(data.error) || errorMsg;
+            } catch (e) { }
+            throw new Error(`Gemini Error: ${errorMsg}`);
+        }
 
         const reader = response.body?.getReader();
         if (!reader) throw new Error("Failed to read stream");
@@ -166,29 +173,3 @@ export class GeminiProvider extends BaseCloudProvider {
     protected extractContent(_data: any) { return ""; }
 }
 
-export class OpenRouterProvider extends BaseCloudProvider {
-    name = 'OpenRouter';
-    protected apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
-    protected model = 'meta-llama/llama-3.1-8b-instruct:free'; // Default free model
-
-    protected getHeaders() {
-        return {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': window.location.origin,
-            'X-Title': 'Kioku'
-        };
-    }
-
-    protected getBody(messages: Message[]) {
-        return JSON.stringify({
-            model: this.model,
-            messages,
-            stream: true
-        });
-    }
-
-    protected extractContent(data: any) {
-        return data.choices[0]?.delta?.content || "";
-    }
-}

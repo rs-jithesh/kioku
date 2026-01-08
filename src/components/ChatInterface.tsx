@@ -3,10 +3,12 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { llmService, type Message } from '../services/llm';
 import { vectorStore } from '../services/vectorStore';
+import { webSearchService } from '../services/webSearch';
 import { db } from '../services/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { MDInput } from './common/MDInput';
 import { MDButton } from './common/MDButton';
+import { MDDialog } from './common/MDDialog';
 import { useVoiceInput } from '../hooks/useVoiceInput';
 import { getDeviceInfo, getLocation, haptics, canNotify } from '../services/deviceCapabilities';
 import './ChatInterface.css';
@@ -24,6 +26,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ conversationId }) 
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+    const [errorDialogMessage, setErrorDialogMessage] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const isInitialLoad = useRef(true);
@@ -31,25 +35,29 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ conversationId }) 
 
     const {
         isListening,
-        transcript,
-        interimTranscript,
+        combinedTranscript,
         isSupported: isVoiceSupported,
         error: voiceError,
         startListening,
         stopListening,
-        clearTranscript
+        resetTranscript
     } = useVoiceInput();
 
-    // Sync voice transcript to input
+    const [lastVoiceText, setLastVoiceText] = useState('');
+
+    // Commit voice transcript when listening stops
     useEffect(() => {
-        if (transcript) {
+        if (!isListening && lastVoiceText) {
             setInput(prev => {
                 const base = prev.trim();
-                return base ? `${base} ${transcript}` : transcript;
+                return base ? `${base} ${lastVoiceText}` : lastVoiceText;
             });
-            clearTranscript();
+            setLastVoiceText('');
+            resetTranscript();
+        } else if (isListening) {
+            setLastVoiceText(combinedTranscript);
         }
-    }, [transcript, clearTranscript]);
+    }, [isListening, combinedTranscript, resetTranscript, lastVoiceText]);
 
     // Auto-clear voice errors
     useEffect(() => {
@@ -106,7 +114,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ conversationId }) 
         const explicitFacts = llmService.extractExplicitMemory(text);
         if (explicitFacts) {
             for (const [key, value] of Object.entries(explicitFacts)) {
-                await db.user_profile.put({
+                await db.ai_memory.put({
                     key,
                     value: String(value),
                     updatedAt: Date.now()
@@ -130,7 +138,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ conversationId }) 
                 if (messagesToProcess.length > 0) {
                     const facts = await llmService.extractUserFacts(messagesToProcess);
                     for (const [key, value] of Object.entries(facts)) {
-                        await db.user_profile.put({
+                        await db.ai_memory.put({
                             key,
                             value: String(value),
                             updatedAt: Date.now()
@@ -182,7 +190,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ conversationId }) 
 
         try {
             const relevantNotes = await vectorStore.searchNotes(userInput);
-            const savedMemories = await db.user_profile.toArray();
+            const savedMemories = await db.ai_memory.toArray();
 
             let systemContext = "Knowledge Base:";
             if (relevantNotes.length > 0) {
@@ -192,6 +200,20 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ conversationId }) 
             if (savedMemories.length > 0) {
                 systemContext += "\n\nUser Profile Facts:\n" +
                     savedMemories.map(m => `* ${m.key}: ${m.value}`).join("\n");
+            }
+
+            // Perform web search if enabled
+            const webSearchEnabled = localStorage.getItem('PREF_WEB_SEARCH_ENABLED') === 'true';
+            if (webSearchEnabled) {
+                try {
+                    const searchResults = await webSearchService.search(userInput, 5);
+                    if (searchResults.length > 0) {
+                        systemContext += webSearchService.formatResultsForContext(searchResults);
+                    }
+                } catch (searchError) {
+                    console.warn('Web search failed:', searchError);
+                    // Continue without web search results - don't break the chat
+                }
             }
 
             try {
@@ -216,11 +238,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ conversationId }) 
                 content: `You are Kioku, a high-productivity AI memory assistant. 
 Use Markdown for formatting. 
 Current identity: Kioku. 
-Capabilities: You can search user [Notes], manage [Reminders], and remember personal facts in [Memory].
 
-If the user wants to set a reminder, include this exact tag at the end of your response:
-[REMINDER: "description" AT "YYYY-MM-DD HH:MM"]
-Use the user's local time provided in context for calculation.
+Core Mission & Capabilities:
+1. Unified Chat: Expert in natural conversation and voice interaction.
+2. Intelligent Memory: Automatically learn facts and preferences about the user from conversation. Support explicit memory commands like "Remember that...".
+3. Notes & Knowledge: Search and reference user notes using vector embeddings. Support markdown for rich note content.
+4. Smart Reminders: Create reminders from natural language using the exact tag: [REMINDER: "description" AT "YYYY-MM-DD HH:MM"]. Use the user's local time provided in context for calculation.
+5. Web Search: If enabled, search the web for real-time info and cite sources with URLs.
+
+Always guide users on how to use these features properly when asked.
 
 Context:
 ${systemContext}`
@@ -279,19 +305,70 @@ ${systemContext}`
             processRollingSynthesis(allMsgs, allMsgs.length);
 
         } catch (error) {
-            console.error(error);
+            console.error('LLM Connection Error:', error);
             const errorMsg = error instanceof Error ? error.message : 'Sorry, I encountered an unexpected error.';
-            setMessages(prev => [...prev, { role: 'assistant', content: `❌ **Error:** ${errorMsg}\n\nPlease check your API key and internet connection in Settings.` }]);
+
+            // Specific diagnosis based on error string
+            let diagnosis = "Please check your API key and internet connection.";
+            if (errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError')) {
+                diagnosis = "This is likely a Network or CORS issue. Some browsers block direct AI requests. Try using **OpenRouter** which is optimized for web browsers.";
+            } else if (errorMsg.includes('401') || errorMsg.includes('Unauthorized')) {
+                diagnosis = "Your API key appears to be invalid or expired. Please check your settings.";
+            } else if (errorMsg.includes('429')) {
+                diagnosis = "Rate limit exceeded. Please wait a moment or try a different provider.";
+            }
+
+            setErrorDialogMessage(
+                `### Connection Failed\n\n**Error:** ${errorMsg}\n\n**Suggestion:** ${diagnosis}`
+            );
+            setErrorDialogOpen(true);
+
+            // Create a persistent error message in chat
+            const persistentErrorContent = `❌ **Connection Error**
+            
+**Details:** ${errorMsg}
+
+**Recommendation:** ${diagnosis}
+
+**Troubleshooting:**
+1. Check your API key in Settings
+2. Verify your AI provider selection
+3. Ensure you have an active internet connection
+
+This error has been saved to your chat history for reference.`;
+
+            // Save error message to database so it persists
+            await db.chat_messages.add({
+                conversationId,
+                role: 'assistant',
+                content: persistentErrorContent,
+                timestamp: Date.now()
+            });
+
+            // Update conversation timestamp
+            await db.conversations.update(conversationId, { updatedAt: Date.now() });
+
+            // Remove any empty assistant message that was added for streaming
+            // The error message will be synced from database via useLiveQuery
+            setMessages(prev => {
+                return prev.filter((msg, idx) => {
+                    // Remove empty assistant messages (from streaming setup)
+                    if (msg.role === 'assistant' && !msg.content && idx === prev.length - 1) {
+                        return false;
+                    }
+                    return true;
+                });
+            });
         } finally {
             setIsLoading(false);
         }
     };
 
     const suggestions = [
-        "How do I use this app?",
+        "How do I use Kioku?",
         "Summary of my notes on AI",
         "Explain quantum computing",
-        "Draft a follow-up email"
+        "Tell me about my personal facts"
     ];
 
     if (messages.length === 0 && !isLoading) {
@@ -337,12 +414,11 @@ ${systemContext}`
                     {voiceError && <div className="voice-error-tooltip">{voiceError}</div>}
                     <MDInput
                         ref={inputRef}
-                        label={isListening ? (interimTranscript || "Listening...") : "Message..."}
-                        value={isListening ? interimTranscript : input}
+                        label={isListening ? "Listening..." : "Message..."}
+                        value={isListening ? (input ? `${input} ${combinedTranscript}` : combinedTranscript) : input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                         className="chat-input-field"
-                        disabled={isListening}
                     />
                     {isVoiceSupported && (
                         <MDButton
@@ -367,6 +443,13 @@ ${systemContext}`
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                 {msg.content}
                             </ReactMarkdown>
+                            {isLoading && msg.role === 'assistant' && idx === messages.length - 1 && (
+                                <div className="typing-indicator">
+                                    <span className="typing-dot" />
+                                    <span className="typing-dot" />
+                                    <span className="typing-dot" />
+                                </div>
+                            )}
                         </div>
                     </div>
                 ))}
@@ -377,12 +460,11 @@ ${systemContext}`
                 {voiceError && <div className="voice-error-tooltip">{voiceError}</div>}
                 <MDInput
                     ref={inputRef}
-                    label={isListening ? (interimTranscript || "Listening...") : "Message..."}
-                    value={isListening ? interimTranscript : input}
+                    label={isListening ? "Listening..." : "Message..."}
+                    value={isListening ? (input ? `${input} ${combinedTranscript}` : combinedTranscript) : input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                     className="chat-input-field"
-                    disabled={isListening}
                 />
                 {isVoiceSupported && (
                     <MDButton
@@ -394,6 +476,14 @@ ${systemContext}`
                 )}
                 <MDButton variant="filled" icon="send" onClick={() => handleSend()} disabled={isLoading || isListening} />
             </div>
+
+            <MDDialog
+                isOpen={errorDialogOpen}
+                onClose={() => setErrorDialogOpen(false)}
+                title="Connection Problem"
+                message={errorDialogMessage}
+                icon="error"
+            />
         </div>
     );
 };

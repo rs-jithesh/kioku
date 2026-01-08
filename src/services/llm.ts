@@ -1,6 +1,6 @@
 import type { ILLMProvider, Message, OnUpdateCallback } from './providers/base';
 export type { Message, OnUpdateCallback };
-import { GroqProvider, OpenAIProvider, AnthropicProvider, GeminiProvider, OpenRouterProvider } from './providers/cloudProviders';
+import { GroqProvider, OpenAIProvider, AnthropicProvider, GeminiProvider } from './providers/cloudProviders';
 
 export class LLMService {
     private activeProvider: ILLMProvider | null = null;
@@ -30,9 +30,6 @@ export class LLMService {
                 break;
             case 'gemini':
                 this.activeProvider = new GeminiProvider(apiKey);
-                break;
-            case 'openrouter':
-                this.activeProvider = new OpenRouterProvider(apiKey);
                 break;
             default:
                 this.activeProvider = null;

@@ -166,12 +166,27 @@ export function canNotify(): boolean {
     return 'Notification' in window && Notification.permission === 'granted' && prefEnabled;
 }
 
-export function showNotification(title: string, options?: NotificationOptions): void {
+export async function showNotification(title: string, options?: NotificationOptions): Promise<void> {
     if (!canNotify()) return;
 
+    // Use ServiceWorker for better background support if available
+    if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        if (registration) {
+            registration.showNotification(title, {
+                icon: '/favicon.jpg',
+                badge: '/favicon.jpg',
+                vibrate: [200, 100, 200],
+                ...options
+            } as any);
+            return;
+        }
+    }
+
+    // Fallback to legacy Notification API
     new Notification(title, {
-        icon: '/pwa-192x192.png',
-        badge: '/pwa-192x192.png',
+        icon: '/favicon.jpg',
+        badge: '/favicon.jpg',
         ...options
     });
 }

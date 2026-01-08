@@ -10,10 +10,10 @@ export interface ILLMProvider {
     chatCompletion(messages: Message[], onUpdate?: OnUpdateCallback): Promise<string>;
 }
 
-export abstract class BaseCloudProvider implements ILLMProvider {
-    abstract name: string;
-    protected abstract apiUrl: string;
-    protected abstract model: string;
+export class BaseCloudProvider implements ILLMProvider {
+    name: string = 'Base';
+    protected apiUrl: string = '';
+    protected model: string = '';
     protected apiKey: string;
 
     constructor(apiKey: string) {
@@ -28,15 +28,30 @@ export abstract class BaseCloudProvider implements ILLMProvider {
         });
 
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(`AI Provider Error: ${error.error?.message || response.statusText}`);
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                // Extract message from common error formats
+                errorMessage = errorData.error?.message ||
+                    errorData.message ||
+                    errorData.error ||
+                    (errorData.choices?.[0]?.message) ||
+                    JSON.stringify(errorData);
+            } catch (e) {
+                // If JSON parsing fails, try to get raw text
+                try {
+                    const text = await response.text();
+                    if (text) errorMessage = text.slice(0, 200); // Limit length
+                } catch (e2) { }
+            }
+            throw new Error(errorMessage);
         }
 
         return this.handleStream(response, onUpdate);
     }
 
-    protected abstract getHeaders(): Record<string, string>;
-    protected abstract getBody(messages: Message[]): string;
+    protected getHeaders(): Record<string, string> { return {}; }
+    protected getBody(_messages: Message[]): string { return ''; }
 
     protected async handleStream(response: Response, onUpdate?: OnUpdateCallback): Promise<string> {
         const reader = response.body?.getReader();
@@ -69,5 +84,5 @@ export abstract class BaseCloudProvider implements ILLMProvider {
         return fullText;
     }
 
-    protected abstract extractContent(data: any): string;
+    protected extractContent(_data: any): string { return ''; }
 }

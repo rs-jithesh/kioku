@@ -7,6 +7,13 @@ import { usePWAInstall } from '../hooks/usePWAInstall';
 import { MDDialog } from './common/MDDialog';
 import './Settings.css';
 
+const API_KEY_URLS: Record<string, string> = {
+    groq: 'https://console.groq.com/keys',
+    openai: 'https://platform.openai.com/api-keys',
+    anthropic: 'https://console.anthropic.com/settings/keys',
+    gemini: 'https://aistudio.google.com/app/apikey'
+};
+
 export const Settings: React.FC = () => {
     const { isInstallable, isInstalled, promptInstall, platform } = usePWAInstall();
     const [provider, setProvider] = useState(localStorage.getItem('AI_PROVIDER_TYPE') || 'groq');
@@ -14,12 +21,13 @@ export const Settings: React.FC = () => {
     const [openaiKey, setOpenaiKey] = useState(localStorage.getItem('OPENAI_API_KEY') || '');
     const [anthropicKey, setAnthropicKey] = useState(localStorage.getItem('ANTHROPIC_API_KEY') || '');
     const [geminiKey, setGeminiKey] = useState(localStorage.getItem('GEMINI_API_KEY') || '');
-    const [openRouterKey, setOpenRouterKey] = useState(localStorage.getItem('OPENROUTER_API_KEY') || '');
     const [fontScale, setFontScale] = useState(Number(localStorage.getItem('APP_FONT_SCALE')) || 1);
     const [status, setStatus] = useState('');
     const [locationEnabled, setLocationEnabled] = useState(localStorage.getItem('PREF_LOCATION_ENABLED') === 'true');
     const [notificationsEnabled, setNotificationsEnabled] = useState(localStorage.getItem('PREF_NOTIFICATIONS_ENABLED') === 'true');
+    const [webSearchEnabled, setWebSearchEnabled] = useState(localStorage.getItem('PREF_WEB_SEARCH_ENABLED') === 'true');
     const [voiceLang, setVoiceLang] = useState(localStorage.getItem('PREF_VOICE_LANG') || 'en-US');
+    const [serperKey, setSerperKey] = useState(localStorage.getItem('SERPER_API_KEY') || '');
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
     const handleSave = () => {
@@ -28,7 +36,6 @@ export const Settings: React.FC = () => {
             openai: openaiKey,
             anthropic: anthropicKey,
             gemini: geminiKey,
-            openrouter: openRouterKey,
         };
 
         if (!keyMap[provider]?.trim()) {
@@ -42,10 +49,11 @@ export const Settings: React.FC = () => {
         localStorage.setItem('OPENAI_API_KEY', openaiKey);
         localStorage.setItem('ANTHROPIC_API_KEY', anthropicKey);
         localStorage.setItem('GEMINI_API_KEY', geminiKey);
-        localStorage.setItem('OPENROUTER_API_KEY', openRouterKey);
         localStorage.setItem('APP_FONT_SCALE', String(fontScale));
         localStorage.setItem('PREF_LOCATION_ENABLED', String(locationEnabled));
         localStorage.setItem('PREF_NOTIFICATIONS_ENABLED', String(notificationsEnabled));
+        localStorage.setItem('PREF_WEB_SEARCH_ENABLED', String(webSearchEnabled));
+        localStorage.setItem('SERPER_API_KEY', serperKey);
         localStorage.setItem('PREF_VOICE_LANG', voiceLang);
 
         llmService.loadProvider();
@@ -106,8 +114,11 @@ export const Settings: React.FC = () => {
                     <option value="openai">OpenAI (GPT-4o)</option>
                     <option value="anthropic">Anthropic (Claude 3.5)</option>
                     <option value="gemini">Google Gemini (2.5 Flash)</option>
-                    <option value="openrouter">OpenRouter (Any Model)</option>
                 </select>
+                <div className="setting-tip" style={{ marginTop: '12px', padding: '12px', backgroundColor: 'var(--md-sys-color-secondary-container)', borderRadius: '12px', fontSize: '13px', color: 'var(--md-sys-color-on-secondary-container)' }}>
+                    <span className="material-symbols-rounded" style={{ fontSize: '18px', verticalAlign: 'middle', marginRight: '8px' }}>info</span>
+                    <strong>Best for Browser:</strong> Use <strong>OpenRouter</strong> for the most reliable connection. Some direct providers (like Groq) may block requests due to CORS settings in certain browsers.
+                </div>
             </div>
 
             <div className="settings-section">
@@ -124,9 +135,24 @@ export const Settings: React.FC = () => {
                 {provider === 'gemini' && (
                     <MDInput label="Gemini API Key" value={geminiKey} onChange={(e) => setGeminiKey(e.target.value)} type="password" />
                 )}
-                {provider === 'openrouter' && (
-                    <MDInput label="OpenRouter API Key" value={openRouterKey} onChange={(e) => setOpenRouterKey(e.target.value)} type="password" />
-                )}
+                <div className="api-key-portal-link" style={{ marginTop: '12px' }}>
+                    <a
+                        href={API_KEY_URLS[provider]}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                            color: 'var(--md-sys-color-primary)',
+                            textDecoration: 'none',
+                            fontSize: '14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                        }}
+                    >
+                        <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>open_in_new</span>
+                        Get {provider.charAt(0).toUpperCase() + provider.slice(1)} API Key
+                    </a>
+                </div>
             </div>
 
             <div className="settings-section">
@@ -150,6 +176,49 @@ export const Settings: React.FC = () => {
                         {notificationsEnabled ? "Enabled" : "Enable"}
                     </MDButton>
                 </div>
+            </div>
+
+            <div className="settings-section">
+                <h3>AI Features</h3>
+                <div className="setting-item flex-row">
+                    <div className="setting-label-group">
+                        <label>Web Search</label>
+                        <small>Enable web search to get real-time information from the internet using SearXNG</small>
+                    </div>
+                    <MDButton variant={webSearchEnabled ? "filled" : "outlined"} onClick={() => setWebSearchEnabled(!webSearchEnabled)}>
+                        {webSearchEnabled ? "Enabled" : "Enable"}
+                    </MDButton>
+                </div>
+                {webSearchEnabled && (
+                    <div className="setting-item" style={{ marginTop: '16px' }}>
+                        <MDInput
+                            label="Serper.dev API Key"
+                            value={serperKey}
+                            onChange={(e) => setSerperKey(e.target.value)}
+                            type="password"
+                        />
+                        <a
+                            href="https://serper.dev"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                                color: 'var(--md-sys-color-primary)',
+                                textDecoration: 'none',
+                                fontSize: '13px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                marginTop: '8px'
+                            }}
+                        >
+                            <span className="material-symbols-rounded" style={{ fontSize: '16px' }}>open_in_new</span>
+                            Get Free Serper Key
+                        </a>
+                        <small style={{ display: 'block', color: 'var(--md-sys-color-on-surface-variant)', fontSize: '12px', lineHeight: '1.4', marginTop: '12px' }}>
+                            Web search uses Serper.dev to provide high-quality Google Search results. Results are included in AI responses for real-time information.
+                        </small>
+                    </div>
+                )}
             </div>
 
             <div className="settings-section">
