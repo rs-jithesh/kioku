@@ -21,7 +21,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     const [provider, setProvider] = useState('groq');
     const [apiKey, setApiKey] = useState('');
     const [serperKey, setSerperKey] = useState('');
-    const [webSearchEnabled, setWebSearchEnabled] = useState(false);
+    const [webSearchEnabled] = useState(false);
 
     useEffect(() => {
         if (step === 'splash') {

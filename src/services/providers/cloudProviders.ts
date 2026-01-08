@@ -1,5 +1,5 @@
 import { BaseCloudProvider } from './base';
-import type { Message, OnUpdateCallback } from './base';
+import type { Message } from './base';
 
 export class GroqProvider extends BaseCloudProvider {
     name = 'Groq';
